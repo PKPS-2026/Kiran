@@ -25,7 +25,7 @@ jobs:
       - name: Build and Push image
         uses: docker/build-push-action@v5
         with:
-          context: .
+          context: ./KCC-Loan-Automation-29-05-2026
           push: true
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/kcc-automation:latest
