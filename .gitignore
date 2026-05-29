@@ -1,0 +1,19 @@
+# Credentials — NEVER commit this
+config.py
+
+# Data files — contain personal Aadhaar data
+*.xlsx
+*.xls
+
+# Cloudflare binary — large, auto-downloaded at runtime
+cloudflared.exe
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# OS
+.DS_Store
+Thumbs.db
