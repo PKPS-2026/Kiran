@@ -16,22 +16,30 @@ jobs:
         run: |
           docker run -d --name kcc-app \
             -p 8501:8501 \
-            -p 5000:5000 \
-            -p 8080:8080 \
-            -p 8888:8888 \
             kiran9538/kcc-automation:latest
 
       - name: Wait for app to start
         run: sleep 25
 
-      - name: Check what port app is listening on
+      - name: 🔍 Debug - Container status and logs
         run: |
-          echo "=== Container logs ==="
+          echo "=== CONTAINER STATUS ==="
+          docker ps -a
+          echo ""
+          echo "=== CONTAINER LOGS ==="
           docker logs kcc-app
-          echo "=== Listening ports ==="
-          docker exec kcc-app ss -tlnp || \
-          docker exec kcc-app netstat -tlnp || \
+          echo ""
+          echo "=== OPEN PORTS ON HOST ==="
           ss -tlnp
+          echo ""
+          echo "=== DOCKER INSPECT PORTS ==="
+          docker inspect kcc-app --format='{{json .NetworkSettings.Ports}}'
+          echo ""
+          echo "=== PROCESSES INSIDE CONTAINER ==="
+          docker exec kcc-app ps aux || true
+          echo ""
+          echo "=== TEST PORT 8501 ==="
+          curl -s http://localhost:8501 || echo "Port 8501 not responding"
 
       - name: Install Cloudflare Tunnel
         run: |
@@ -42,9 +50,8 @@ jobs:
 
       - name: 🌐 Print Dashboard URL
         run: |
-          # Detect port
-          PORT=$(ss -tlnp | grep -oP '(?<=:)\d+' | grep -v '22\|53' | head -1)
-          echo "Detected port: $PORT"
+          PORT=$(ss -tlnp | grep -oP '(?<=:)\d{4,5}' | grep -v '2222' | head -1)
+          echo "Using port: ${PORT:-8501}"
           cloudflared tunnel --url http://localhost:${PORT:-8501} \
             --no-autoupdate > /tmp/cf.log 2>&1 &
           sleep 20
