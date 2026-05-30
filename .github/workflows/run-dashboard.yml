@@ -1,1 +1,47 @@
 
+name: 🚀 Run Dashboard V4 (Live URL)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run-dashboard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Pull Docker image
+        run: docker pull kiran9538/kcc-automation:latest
+
+      - name: Run Dashboard V4 container
+        run: |
+          docker run -d --name kcc-app \
+            -p 8501:8501 \
+            kiran9538/kcc-automation:latest
+
+      - name: Wait for app to start
+        run: sleep 20
+
+      - name: Install Cloudflare Tunnel
+        run: |
+          curl -fsSL \
+            https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 \
+            -o /usr/local/bin/cloudflared
+          chmod +x /usr/local/bin/cloudflared
+
+      - name: 🌐 Print Dashboard URL
+        run: |
+          cloudflared tunnel --url http://localhost:8501 \
+            --no-autoupdate 2>&1 | \
+            grep --line-buffered "trycloudflare.com" | \
+            awk '{
+              for(i=1;i<=NF;i++) {
+                if($i ~ /https:\/\/.*trycloudflare\.com/) {
+                  print "========================================";
+                  print "  ✅ DASHBOARD V4 IS LIVE!";
+                  print "  🔗 URL: " $i;
+                  print "========================================";
+                }
+              }
+            }' &
+          sleep 1500
