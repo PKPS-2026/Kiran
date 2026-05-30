@@ -29,14 +29,18 @@ jobs:
             -o /usr/local/bin/cloudflared
           chmod +x /usr/local/bin/cloudflared
 
-      - name: 🌐 Print Dashboard URL
+      - name: 🌐 Print Dashboard + noVNC URLs
         run: |
           cloudflared tunnel --url http://localhost:5000 \
-            --no-autoupdate > /tmp/cf.log 2>&1 &
-          sleep 20
+            --no-autoupdate > /tmp/cf1.log 2>&1 &
+          cloudflared tunnel --url http://localhost:6080 \
+            --no-autoupdate > /tmp/cf2.log 2>&1 &
+          sleep 25
           echo "========================================"
-          echo "✅ DASHBOARD V4 IS LIVE!"
+          echo "🖥️  DASHBOARD URL (use this to start):"
+          grep -o 'https://[a-zA-Z0-9-]*\.trycloudflare\.com' /tmp/cf1.log | head -1
+          echo ""
+          echo "👁️  NOVNC VIEWER URL (watch Chrome fill form):"
+          grep -o 'https://[a-zA-Z0-9-]*\.trycloudflare\.com' /tmp/cf2.log | head -1
           echo "========================================"
-          grep -o 'https://[a-zA-Z0-9-]*\.trycloudflare\.com' /tmp/cf.log \
-            || cat /tmp/cf.log
           sleep 1500
