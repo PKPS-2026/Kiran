@@ -1,4 +1,3 @@
-
 name: 🚀 Run Dashboard V4 (Live URL)
 
 on:
@@ -32,16 +31,12 @@ jobs:
       - name: 🌐 Print Dashboard URL
         run: |
           cloudflared tunnel --url http://localhost:8501 \
-            --no-autoupdate 2>&1 | \
-            grep --line-buffered "trycloudflare.com" | \
-            awk '{
-              for(i=1;i<=NF;i++) {
-                if($i ~ /https:\/\/.*trycloudflare\.com/) {
-                  print "========================================";
-                  print "  ✅ DASHBOARD V4 IS LIVE!";
-                  print "  🔗 URL: " $i;
-                  print "========================================";
-                }
-              }
-            }' &
+            --no-autoupdate > /tmp/cf.log 2>&1 &
+          sleep 20
+          echo "========================================"
+          echo "  ✅ DASHBOARD V4 IS LIVE!"
+          echo "  🔗 URL BELOW:"
+          echo "========================================"
+          grep -o 'https://[a-zA-Z0-9-]*\.trycloudflare\.com' /tmp/cf.log || \
+          cat /tmp/cf.log
           sleep 1500
