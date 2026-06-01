@@ -6,7 +6,7 @@ on:
 jobs:
   run-dashboard:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 360
 
     steps:
       - name: Pull Docker image
@@ -43,4 +43,4 @@ jobs:
           echo "👁️  NOVNC VIEWER URL (watch Chrome fill form):"
           grep -o 'https://[a-zA-Z0-9-]*\.trycloudflare\.com' /tmp/cf2.log | head -1
           echo "========================================"
-          sleep 1500
+          sleep 18000
