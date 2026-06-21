@@ -649,6 +649,7 @@ def stop():
 @app.route("/stream")
 def stream():
     def _gen():
+        yield ": " + " " * 2048 + "\n\n"
         while True:
             try:
                 msg = state["log_queue"].get(timeout=25)
