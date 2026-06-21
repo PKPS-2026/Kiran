@@ -42,6 +42,7 @@ state = {
     "running":    False,
     "process":    None,
     "log_queue":  queue.Queue(),
+    "log_buffer": [],
     "summary":    {"processed": 0, "success": 0, "failed": 0},
     "end_date":   "",
     "tunnel_proc": None,
@@ -301,38 +302,38 @@ function updateSummary(s) {
   document.getElementById('progTxt').textContent = (s.processed || 0) + ' processed';
 }
 
-// SSE
-let es = null;
+let pollTimer = null;
+let logIndex = 0;
 function startStream() {
-  if (es) es.close();
-  es = new EventSource('/stream');
-  es.onmessage = e => {
-    try {
-      const d = JSON.parse(e.data);
-      if (d.type === 'log')     appendLog(d.text);
-      if (d.type === 'summary') updateSummary(d.summary);
-      if (d.type === 'record_update') addOrUpdateRow(d.record);
-      if (d.type === 'csv_ready') {
-        document.getElementById('btnDownload').href = '/download?t=' + Date.now();
-      }
-      if (d.type === 'done') {
-        appendLog('\n══ Automation finished ══\n');
-        document.getElementById('btnStop').classList.add('d-none');
-        document.getElementById('btnRun').classList.remove('d-none');
-        document.getElementById('btnDraft').classList.remove('d-none');
-        document.getElementById('btnRun').disabled = false;
-        document.getElementById('btnDraft').disabled = false;
-        document.getElementById('runHint').innerHTML =
-          '<i class="bi bi-check2-all text-success me-1"></i>Finished — click above to run again';
-        if (es) { es.close(); es = null; }
-        // Load latest records from server
-        fetch('/records').then(r=>r.json()).then(d=>{
-          d.records.forEach(addOrUpdateRow);
-        });
-      }
-    } catch(err) {}
-  };
-  es.onerror = () => {};
+logIndex = 0;
+if (pollTimer) clearInterval(pollTimer);
+pollTimer = setInterval(pollLogs, 2000);
+pollLogs();
+}
+function pollLogs() {
+fetch('/logs?since=' + logIndex)
+.then(r => r.json())
+.then(d => {
+d.lines.forEach(line => appendLog(line));
+logIndex = d.total;
+if (d.summary) updateSummary(d.summary);
+if (d.csv_ready) {
+document.getElementById('btnDownload').href = '/download?t=' + Date.now();
+}
+if (!d.running && logIndex > 0) {
+clearInterval(pollTimer); pollTimer = null;
+appendLog('\n══ Automation finished ══\n');
+document.getElementById('btnStop').classList.add('d-none');
+document.getElementById('btnRun').classList.remove('d-none');
+document.getElementById('btnDraft').classList.remove('d-none');
+document.getElementById('btnRun').disabled = false;
+document.getElementById('btnDraft').disabled = false;
+document.getElementById('runHint').innerHTML =
+'<i class="bi bi-check2-all text-success me-1"></i>Finished — click above to run again';
+fetch('/records').then(r=>r.json()).then(d=>{ d.records.forEach(addOrUpdateRow); });
+}
+})
+.catch(() => {});
 }
 
 function startAuto(mode) {
@@ -451,6 +452,7 @@ def start():
     state["running"]   = True
     state["summary"]   = {"processed": 0, "success": 0, "failed": 0}
     state["records"]   = []
+    state["log_buffer"] = []
     state["csv_ready"] = False
     state["csv_data"]  = ""
     state["_csv_collecting"] = False
@@ -509,6 +511,7 @@ def start():
                     continue
 
                 state["log_queue"].put(json.dumps({"type": "log", "text": line}))
+                state["log_buffer"].append(line)
 
                 # Record counter: "Record X/Y"
                 m = re.search(r'Record\s+(\d+)/(\d+)', line)
@@ -561,6 +564,7 @@ def start_draft():
     state["running"]   = True
     state["summary"]   = {"processed": 0, "success": 0, "failed": 0}
     state["records"]   = []
+    state["log_buffer"] = []
     state["csv_ready"] = False
     state["csv_data"]  = ""
     state["_csv_collecting"] = False
@@ -611,6 +615,7 @@ def start_draft():
                     state["log_queue"].put(json.dumps({"type": "record_update", "record": rec}))
                     continue
                 state["log_queue"].put(json.dumps({"type": "log", "text": line}))
+                state["log_buffer"].append(line)
                 m = re.search(r'Draft Record\s+(\d+)/(\d+)', line)
                 if m:
                     try:
@@ -664,7 +669,17 @@ def stream():
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
 
-
+@app.route("/logs")
+def logs():
+since = int(request.args.get("since", 0))
+buf = state["log_buffer"]
+return jsonify({
+"lines": buf[since:],
+"total": len(buf),
+"running": state["running"],
+"summary": state["summary"],
+"csv_ready": state["csv_ready"],
+})
 @app.route("/ping")
 def ping():
     return jsonify({"ok": True})
