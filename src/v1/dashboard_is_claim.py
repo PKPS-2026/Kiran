@@ -679,7 +679,7 @@ def logs():
         "running": state["running"],
         "summary": state["summary"],
         "csv_ready": state["csv_ready"],
-})
+        })
 @app.route("/ping")
 def ping():
     return jsonify({"ok": True})
