@@ -671,14 +671,14 @@ def stream():
 
 @app.route("/logs")
 def logs():
-since = int(request.args.get("since", 0))
-buf = state["log_buffer"]
-return jsonify({
-"lines": buf[since:],
-"total": len(buf),
-"running": state["running"],
-"summary": state["summary"],
-"csv_ready": state["csv_ready"],
+    since = int(request.args.get("since", 0))
+    buf = state["log_buffer"]
+    return jsonify({
+        "lines": buf[since:],
+        "total": len(buf),
+        "running": state["running"],
+        "summary": state["summary"],
+        "csv_ready": state["csv_ready"],
 })
 @app.route("/ping")
 def ping():
