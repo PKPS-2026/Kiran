@@ -27,7 +27,7 @@ jobs:
       - name: Build and Push IS Claim image
         uses: docker/build-push-action@v5
         with:
-          context: ./IS-Claim-Automation-19-06-2026
+          context: .
           push: true
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/is-claim-automation:latest
