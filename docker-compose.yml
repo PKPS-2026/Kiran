@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  is-claim-dashboard:
+    build: .
+    container_name: is-claim-automation
+    ports:
+      - "5000:5000"   # Dashboard UI
+      - "6080:6080"   # noVNC — view Chrome browser
+    shm_size: '2gb'   # Required for Chrome
+    restart: unless-stopped
+    environment:
+      - DISPLAY=:99
