@@ -1,0 +1,57 @@
+name: IS Claim — Run Dashboard
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run-dashboard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+
+    steps:
+      - name: Pull IS Claim Docker image
+        run: |
+          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/is-claim-automation:latest
+
+      - name: Start IS Claim container
+        run: |
+          docker run -d \
+            --name is-claim \
+            -p 5000:5000 \
+            -p 6080:6080 \
+            ${{ secrets.DOCKERHUB_USERNAME }}/is-claim-automation:latest
+
+      - name: Wait for startup
+        run: sleep 30
+
+      - name: Install Cloudflare Tunnel
+        run: |
+          wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 \
+            -O /usr/local/bin/cloudflared
+          chmod +x /usr/local/bin/cloudflared
+
+      - name: Start tunnel — Dashboard (port 5000)
+        run: |
+          cloudflared tunnel --url http://localhost:5000 &
+          sleep 10
+          echo "Dashboard tunnel started"
+
+      - name: Start tunnel — Browser VNC (port 6080)
+        run: |
+          cloudflared tunnel --url http://localhost:6080 &
+          sleep 10
+          echo "VNC tunnel started"
+
+      - name: Show tunnel URLs
+        run: |
+          echo "=============================================="
+          echo "  IS CLAIM AUTOMATION — LIVE"
+          echo "=============================================="
+          echo "  Check the logs above for Cloudflare URLs:"
+          echo "  Dashboard  → trycloudflare.com URL (5000)"
+          echo "  VNC viewer → trycloudflare.com URL (6080)"
+          echo "  Open VNC URL + /vnc.html to watch browser"
+          echo "=============================================="
+
+      - name: Keep alive for 5 hours
+        run: sleep 18000
